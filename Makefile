@@ -2,11 +2,12 @@ CC=gcc
 CFLAGS=-g -O2 -Wall
 LDFLAGS=
 LIBS=-lusb -lsndfile -lm
-BINS=odvr odvr.x86 odvr-gui
+BINS=odvr odvr.x86 odvr.arm64 odvr-gui
 TICONS=TBA TBB TBC TBD TBS TBT
 FICONS=FCA FCB FCC FCD FCS
 ICONS=$(TICONS) $(FICONS)
 X86LIBS=-L$(HOME)/build/lib32
+ARM64LIBS=-L$(HOME)/build/lib64
 PREFIX=/usr/local
 SYSCONFDIR=/etc
 VERSION=0.1.5-cml
@@ -36,8 +37,12 @@ odvr.x86: cli.c olympusdvr.c
 	gcc -static $(X86LIBS) -m32 -O2 -Wall -o $@ $^ -lusb -lsndfile -lm
 	strip $@
 
+odvr.arm64: cli.c olympusdvr.c
+	gcc -static $(ARM64LIBS) -march=armv8-a -O2 -Wall -o $@ $^ -lusb -lsndfile -lm
+	strip $@
+
 odvr_icons.h:
-	@ echo Making $@ 
+	@ echo Making $@
 	@ gdk-pixbuf-csource --struct --extern --build-list `echo $(ICONS) | \
 	awk '{ for (i = 1; i <= NF; i++) printf("%s icons/%s.png  ", $$i, $$i) }'` | \
 	sed 's/\/\* pixel_data: \*\// \/\* pixel_data \*\/ (guint8 *)/'  > $@
