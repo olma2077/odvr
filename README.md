@@ -78,7 +78,7 @@ Download all recordings in folder B:
 
 $ odvr -d b
 
-Download all recordings in the scheduled folder: 
+Download all recordings in the scheduled folder:
 
 $ odvr -d s
 
@@ -116,4 +116,3 @@ different quality level for your recordings or try the unsupported "sandec"
 program that that is included with this source. It requires wine, the wine
 development envornment, and a copy of "san_dec.dll." Use odvr to download the
 raw files, then run sandec with the filename of the raw file.
-
