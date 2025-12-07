@@ -356,6 +356,6 @@ void print_usage(void){
     "  -r             : Reset the DVR. This may fix some sync issues.\n"
     "  -D             : Enable debug tracing.\n"
     "  -E             : Download everything in RAW format.\n"
-    "  -t             : Format downloaded wav files names as F-YYYYmmdd-HHMMss.\n"
+    "  -t             : Format downloaded file names as F-YYYYmmdd-HHMMss.\n"
   );
 }
