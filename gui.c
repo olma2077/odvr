@@ -80,7 +80,7 @@ void scan_device(odvrData_t *odvrData)
     odvr dev = odvrData->dev;
     odvrData->quality_used = 0;
 
-    for(folder = ODVR_FOLDER_A; folder <= odvr_foldercount(dev); folder++) 
+    for(folder = ODVR_FOLDER_A; folder <= odvr_foldercount(dev); folder++)
     {
 
 	if (odvr_foldername(dev, folder) == 'D') {
@@ -96,24 +96,24 @@ void scan_device(odvrData_t *odvrData)
 
 	creationDate = g_new0(odvrDate_t, 1);
 	gtk_tree_store_append(file_store, &folder_iter, NULL);
-	if ( (folder == odvr_foldercount(dev)) && 
-	     (odvr_foldername(dev, folder) == 'S')) 
+	if ( (folder == odvr_foldercount(dev)) &&
+	     (odvr_foldername(dev, folder) == 'S'))
 	    gtk_tree_store_set(file_store, &folder_iter,
 			       COL_FOLDER, odvrData->folderIcon[odvr_foldercount(dev)],
 			       -1);
-	else 
+	else
 	    gtk_tree_store_set(file_store, &folder_iter,
 			       COL_FOLDER, odvrData->folderIcon[folder-ODVR_FOLDER_A],
 			       -1);
 
-	for (file = 1; file <= odvr_filecount(dev, folder); file++) 
+	for (file = 1; file <= odvr_filecount(dev, folder); file++)
         {
-	    if(odvr_filestat(dev, folder, file, &stat) < 0) 
+	    if(odvr_filestat(dev, folder, file, &stat) < 0)
             {
 		gui_err("Error getting file stat", odvr_error(dev));
 		exit(1);
 	    }
-      
+
 	    creationDate = g_new(odvrDate_t, 1);
 	    g_date_set_dmy(&creationDate->date, stat.day, stat.month, stat.year+2000);
 	    creationDate->hour = stat.hour;
@@ -134,7 +134,7 @@ void scan_device(odvrData_t *odvrData)
 			       COL_DATE, creationDate,
 			       COL_QUALITY, stat.quality,
 			       -1);
-	}      
+	}
     }
 }
 
@@ -157,7 +157,7 @@ static void update_progress(actionData_t *actionData)
 	progressFraction = 1.0;
     gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(actionData->odvrData->overallProgressBar),
 				  progressFraction);
-    
+
 
     progressFraction = (gdouble)(actionData->bytes_transferred)/actionData->bytes_to_transfer;
     sprintf(progress, "%d%%", (int) (progressFraction*100));
@@ -167,7 +167,7 @@ static void update_progress(actionData_t *actionData)
 	progressFraction = 1.0;
     gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(actionData->odvrData->fileProgressBar),
 				  progressFraction);
-    
+
     sprintf(progress, "%d%%", (int) (progressFraction*100));
     gtk_progress_bar_set_text(GTK_PROGRESS_BAR(actionData->odvrData->fileProgressBar),
 			      progress);
@@ -198,7 +198,7 @@ static gint transfer_file( actionData_t *actionData, uint8_t folder, uint8_t slo
 	return GTK_RESPONSE_CANCEL;
     }
 
-    sprintf(fn, "%s/D%c_%04d.wav", 
+    sprintf(fn, "%s/D%c_%04d.wav",
 	    gtk_file_chooser_get_filename(GTK_FILE_CHOOSER (actionData->odvrData->ddButton)),
 	    odvr_foldername(dev, folder), instat.id);
 
@@ -237,13 +237,13 @@ static gint transfer_file( actionData_t *actionData, uint8_t folder, uint8_t slo
     /* Create a shared memory area for any error string returned by the child */
     shmFd = open("/dev/zero", O_RDWR);
     if (shmFd < 0) {
-	sprintf(message, 
+	sprintf(message,
 		"Fatal error - Failed to open file descriptor for shared memory");
 	acknowledge(message);
         exit(1);
     }
 
-    errorString = mmap(0, ERR_STRING_SIZE, 
+    errorString = mmap(0, ERR_STRING_SIZE,
 		       PROT_READ | PROT_WRITE, MAP_SHARED,
 		       shmFd, 0);
     close(shmFd);
@@ -257,7 +257,7 @@ static gint transfer_file( actionData_t *actionData, uint8_t folder, uint8_t slo
     else if (pID == 0) { /* child */
 	/* Setup sbort signal handler */
 	if(odvr_save_wav(dev, folder, slot, fileno(out))) {
-	    sprintf(errorString, "Error downloading \"%s\": %s\n", 
+	    sprintf(errorString, "Error downloading \"%s\": %s\n",
 		    fn, odvr_error(dev));
 	    _exit(1);
 	}
@@ -269,7 +269,7 @@ static gint transfer_file( actionData_t *actionData, uint8_t folder, uint8_t slo
 	while (waitpid(pID , &status, WNOHANG) == 0) {
 	    stat(fn, &outstat);
 	    actionData->bytes_transferred = outstat.st_size;
-	    actionData->total_bytes_transferred += 
+	    actionData->total_bytes_transferred +=
 		actionData->bytes_transferred - previous_bytes_transferred;
 	    update_progress(actionData);
 	    if (actionData->abortTransfer) {
@@ -340,7 +340,7 @@ static void transfer_selected(GtkTreeModel *model,
     if (actionData->abortTransfer)
 	return;
 
-    if (!gtk_tree_model_iter_parent(model, &parent, iter)) 
+    if (!gtk_tree_model_iter_parent(model, &parent, iter))
 	return; /* Transfer files rather than folders. */
 
     gtk_tree_model_get(model, iter, COL_SLOT, &slot, -1);
@@ -364,7 +364,7 @@ static void bytecount_selected(GtkTreeModel *model,
     actionData_t *actionData = data;
     GtkTreeIter parent;
 
-    if (!gtk_tree_model_iter_parent(model, &parent, iter)) 
+    if (!gtk_tree_model_iter_parent(model, &parent, iter))
 	return; /* Transfer files rather than folders. */
 
     gtk_tree_model_get(model, iter, COL_SIZE, &wavSize, -1);
@@ -395,7 +395,7 @@ static gboolean select_folder(GtkTreeModel *model,
     }
 
     gtk_tree_selection_select_iter(actionData->odvrData->selection, iter);
-    
+
     return FALSE;
 }
 
@@ -435,7 +435,7 @@ static GtkWidget *createProgressDialog(actionData_t *actionData)
     gtk_progress_bar_set_text(GTK_PROGRESS_BAR(progressBar),NULL);
 
     g_signal_connect_swapped (progressDialog,
-		      "response", 
+		      "response",
 		      G_CALLBACK (progress_callback),
 		      actionData);
 
@@ -485,31 +485,31 @@ static void transfer(actionData_t *actionData)
 	gtk_tree_selection_select_all (GTK_TREE_SELECTION(actionData->odvrData->selection));
     }
     else {
-	g_message ("Unknown transfer action"); 
+	g_message ("Unknown transfer action");
     }
 
 
     actionData->response = GTK_RESPONSE_NONE;
     actionData->files_transferred = 0;
-    actionData->files_to_transfer = 
+    actionData->files_to_transfer =
 	gtk_tree_selection_count_selected_rows(GTK_TREE_SELECTION(actionData->odvrData->selection));
     actionData->total_bytes_transferred = 0;
     actionData->total_bytes_to_transfer = 0;
 
-    /* Find the total bytes to transfer. 
+    /* Find the total bytes to transfer.
        We only need to do this if we use it in the progress bar */
     if (odvr_cfg_get_report_total_filesize(actionData->odvrData->cfg))
 	gtk_tree_selection_selected_foreach (GTK_TREE_SELECTION(actionData->odvrData->selection),
 					     bytecount_selected,
 					     (gpointer) actionData);
-    
+
     /* Transfer the selected files */
     gtk_tree_selection_selected_foreach (GTK_TREE_SELECTION(actionData->odvrData->selection),
 					 transfer_selected,
 					 (gpointer) actionData);
 
     destroyProgressDialog(progressDialog, actionData);
-    
+
 }
 
 static gboolean quality_selected(GtkTreeModel *model,
@@ -522,11 +522,11 @@ static gboolean quality_selected(GtkTreeModel *model,
 
     GtkTreeIter parent;
 
-    if (!gtk_tree_model_iter_parent(model, &parent, iter)) 
+    if (!gtk_tree_model_iter_parent(model, &parent, iter))
 	return FALSE; /* Don't select folders, continue */
 
     gtk_tree_model_get(model, iter, COL_QUALITY, &quality, -1);
-    
+
     if (quality >= 8*sizeof(actionData->quality_selected)) {
 	gtk_tree_selection_unselect_iter(actionData->odvrData->selection,
 					 iter);
@@ -547,7 +547,7 @@ static void select_by_quality(actionData_t *actionData )
 {
     gint quality;
     GtkWidget *qualityDialog;
-    GtkWidget *qualityCheckButton[ODVR_QUALITY_NUM]; 
+    GtkWidget *qualityCheckButton[ODVR_QUALITY_NUM];
 
     qualityDialog = gtk_dialog_new_with_buttons("Select quality settings",
 						NULL,
@@ -558,11 +558,11 @@ static void select_by_quality(actionData_t *actionData )
        Set any currently selected to active. */
     for (quality = 0; quality < ODVR_QUALITY_NUM; quality++) {
 	if (actionData->odvrData->quality_used & (1<<quality)) {
-	    qualityCheckButton[quality] = 
+	    qualityCheckButton[quality] =
 		gtk_check_button_new_with_label(odvr_quality_name(quality));
-	    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(qualityCheckButton[quality]),  
+	    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(qualityCheckButton[quality]),
 					 (actionData->quality_selected & (1<<quality)));
-	    gtk_box_pack_start (GTK_BOX(GTK_DIALOG(qualityDialog)->vbox), 
+	    gtk_box_pack_start (GTK_BOX(GTK_DIALOG(qualityDialog)->vbox),
 				GTK_WIDGET(qualityCheckButton[quality]), FALSE, FALSE, 0);
 	    gtk_widget_show(qualityCheckButton[quality]);
 	}
@@ -598,7 +598,7 @@ static gboolean date_select(GtkTreeModel *model,
 
     GtkTreeIter parent;
 
-    if (!gtk_tree_model_iter_parent(model, &parent, iter)) 
+    if (!gtk_tree_model_iter_parent(model, &parent, iter))
 	return FALSE; /* Don't select folders. */
 
 /* If date is in range, select, else unselect */
@@ -646,7 +646,7 @@ static void clear(  actionData_t *actionData )
     GtkTreePath *path;
     GtkTreeStore *file_store;
     GtkTreeIter iter;
-    
+
     sprintf(buf, "This will remove all files from folder %c\n Are you sure?",
 	    odvr_foldername(actionData->odvrData->dev, actionData->folderId+1));
     if (acknowledge_ok_cancel(buf) != GTK_RESPONSE_OK)
@@ -662,7 +662,7 @@ static void clear(  actionData_t *actionData )
 	    /* Disconnect from the viewer while deleting, otherwise it is
 	       wasting time refreshing the display as each row is deleted. */
 	    g_object_ref(GTK_TREE_MODEL(file_store));
-	    gtk_tree_view_set_model(GTK_TREE_VIEW(actionData->odvrData->view), 
+	    gtk_tree_view_set_model(GTK_TREE_VIEW(actionData->odvrData->view),
 				    NULL);
 #endif
 	    while (gtk_tree_store_remove(file_store, &iter)) {
@@ -671,12 +671,12 @@ static void clear(  actionData_t *actionData )
 #if 0
 	    /* Re-attach model to view */
 	    gtk_tree_view_set_model(GTK_TREE_VIEW(actionData->odvrData->view),
-				    GTK_TREE_MODEL(file_store)); 
+				    GTK_TREE_MODEL(file_store));
 	    g_object_unref(GTK_TREE_MODEL(file_store));
 #endif
    }
 
-   gtk_tree_path_free(path);	
+   gtk_tree_path_free(path);
 }
 
 static void clear_all(  actionData_t *actionData )
@@ -686,7 +686,7 @@ static void clear_all(  actionData_t *actionData )
     GtkTreePath *path;
     GtkTreeStore *file_store;
     GtkTreeIter iter;
-    
+
     sprintf(buf, "This will remove all files from the device\n Are you sure?");
     if (acknowledge_ok_cancel(buf) != GTK_RESPONSE_OK)
 	return;
@@ -697,12 +697,12 @@ static void clear_all(  actionData_t *actionData )
     /* Disconnect from the viewer while deleting, otherwise it is
        wasting time refreshing the display as each row is deleted. */
     g_object_ref(GTK_TREE_MODEL(file_store));
-    gtk_tree_view_set_model(GTK_TREE_VIEW(actionData->odvrData->view), 
+    gtk_tree_view_set_model(GTK_TREE_VIEW(actionData->odvrData->view),
 			    NULL);
 #endif
 
-    for (folderId=0; 
-	 folderId<odvr_foldercount(actionData->odvrData->dev); 
+    for (folderId=0;
+	 folderId<odvr_foldercount(actionData->odvrData->dev);
 	 folderId++) {
 	odvr_clear_folder(actionData->odvrData->dev, folderId+1);
 
@@ -716,11 +716,11 @@ static void clear_all(  actionData_t *actionData )
 
 	gtk_tree_path_free(path);
     }
-   
+
 #if 1
 	    /* Re-attach model to view */
 	    gtk_tree_view_set_model(GTK_TREE_VIEW(actionData->odvrData->view),
-				    GTK_TREE_MODEL(file_store)); 
+				    GTK_TREE_MODEL(file_store));
 	    g_object_unref(GTK_TREE_MODEL(file_store));
 #endif
 
@@ -748,10 +748,10 @@ static void about( gpointer callback_data,
 			  "copyright", "2007-2008 Conor McLoughin, Tristan Willy",
 			  "license", "This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.",
 			  "wrap-license", TRUE,
-			  "website", "http://code.google.com/p/odvr/",
+			  "website", "https://github.com/twilly/odvr",
 			  NULL);
 
-			  
+
 }
 
 
@@ -770,7 +770,7 @@ gboolean view_selection_funct (GtkTreeSelection *selection,
 	    return FALSE; /* Folder cannot be selected */
 	}
 	else
-	    return TRUE; /* Not a folder. Can be selected */	    
+	    return TRUE; /* Not a folder. Can be selected */
     }
     return TRUE;
 }
@@ -795,7 +795,7 @@ void add_menus(odvrData_t *odvrData, int numFolders)
     quit_item = gtk_menu_item_new_with_label ("Quit");
     gtk_menu_shell_append (GTK_MENU_SHELL (file_menu), quit_item);
     g_signal_connect(G_OBJECT (quit_item), "activate",
-		     G_CALLBACK (quit_event), 
+		     G_CALLBACK (quit_event),
 		     (gpointer) odvrData);
     gtk_widget_show (quit_item);
 
@@ -819,7 +819,7 @@ void add_menus(odvrData_t *odvrData, int numFolders)
 	actionData.folderId = folder;
 	actionData.odvrData = odvrData;
 	g_signal_connect_swapped (G_OBJECT (menu_item), "activate",
-				  G_CALLBACK (transfer), 
+				  G_CALLBACK (transfer),
 				  (gpointer) g_memdup(&actionData, sizeof(actionData)) );
 
 	gtk_widget_show (menu_item);
@@ -998,14 +998,14 @@ gint add_buttons(odvrData_t *odvrData, int numFolders)
 	button = gtk_button_new();
 	toolTip[16]= folderNames[folder];
 	gtk_widget_set_tooltip_text(button, toolTip);
-	
+
 	pixBuf = gdk_pixbuf_from_pixdata(transferFolderIcons[folder], FALSE, &error);
 	if (error) {
 	    gui_err("gdk_pixbuf_from_pixdata failed.", error->message);
 	}
 	image = gtk_image_new_from_pixbuf(pixBuf);
 
-	odvrData->folderIcon[folder] = gdk_pixbuf_from_pixdata(folderIcons[folder], 
+	odvrData->folderIcon[folder] = gdk_pixbuf_from_pixdata(folderIcons[folder],
 							       FALSE, &error);
 	if (error) {
 	    gui_err("Could not load icon.", error->message);
@@ -1026,7 +1026,7 @@ gint add_buttons(odvrData_t *odvrData, int numFolders)
 
 	/* Put the button in the box */
 	gtk_box_pack_start (GTK_BOX (odvrData->buttonBox), button, FALSE, FALSE, 0);
-		
+
 	if ( (folderNames[folder] == 'D') ||  (folderNames[folder] == 'S') )
 	{
 	    gtk_widget_hide (button);
@@ -1039,7 +1039,7 @@ gint add_buttons(odvrData_t *odvrData, int numFolders)
 	{
 	    gtk_widget_show (button);
 	}
-	
+
     }
 
     pixBuf = gdk_pixbuf_from_pixdata(&TBT, FALSE, &error);
@@ -1074,7 +1074,7 @@ void add_destinationDir(odvrData_t *odvrData)
     }
 
     label = gtk_label_new(NULL);
-    gtk_label_set_markup (GTK_LABEL (label), 
+    gtk_label_set_markup (GTK_LABEL (label),
 			  "<span size=\"large\">Destination directory</span>");
 
     gtk_box_pack_start (GTK_BOX (odvrData->destinationDirBox), label, FALSE, FALSE, 0);
@@ -1148,18 +1148,18 @@ int main(int argc, char *argv[])
 
     if (dev)
     {
-	if((model = odvr_model(dev)) == NULL) 
+	if((model = odvr_model(dev)) == NULL)
         {
-	    g_print("Couldn't query model name. %s", 
+	    g_print("Couldn't query model name. %s",
 		    odvr_error(dev));
 	}
-	
+
 	numFolders = odvr_foldercount(dev);
     }
 
     /* Create a new window */
     odvrData.window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
-    gtk_window_set_title (GTK_WINDOW (odvrData.window), 
+    gtk_window_set_title (GTK_WINDOW (odvrData.window),
 			  NAME);
 
     odvr_cfg_get_window_size(odvrData.cfg, &width, &height);
@@ -1193,7 +1193,7 @@ int main(int argc, char *argv[])
 				    G_TYPE_FLOAT,     /* Length  */
 				    G_TYPE_POINTER,   /* Date    */
 				    G_TYPE_UINT);     /* Quality */
-    
+
     odvrData.file_store = file_store;
 
     if (add_buttons(&odvrData, numFolders) < 0)
@@ -1201,7 +1201,7 @@ int main(int argc, char *argv[])
 
     gtk_box_pack_start(GTK_BOX(mainVbox), odvrData.buttonBox, FALSE, FALSE, 1);
 
-    separator = gtk_hseparator_new ();	
+    separator = gtk_hseparator_new ();
     gtk_box_pack_start (GTK_BOX (mainVbox), separator, FALSE, TRUE, 1);
     gtk_widget_show (separator);
 
@@ -1209,7 +1209,7 @@ int main(int argc, char *argv[])
     add_destinationDir(&odvrData);
     gtk_box_pack_start(GTK_BOX(mainVbox), odvrData.destinationDirBox, FALSE, FALSE, 1);
 
-    separator = gtk_hseparator_new ();	
+    separator = gtk_hseparator_new ();
     gtk_box_pack_start (GTK_BOX (mainVbox), separator, FALSE, TRUE, 1);
     gtk_widget_show (separator);
 
@@ -1222,8 +1222,8 @@ int main(int argc, char *argv[])
 
 
     if (dev)
-    {	
-	gtk_window_set_title (GTK_WINDOW (odvrData.window), 
+    {
+	gtk_window_set_title (GTK_WINDOW (odvrData.window),
 			  model);
 
 	scan_device(&odvrData);
@@ -1236,11 +1236,11 @@ int main(int argc, char *argv[])
 
     gtk_tree_view_set_model(GTK_TREE_VIEW(view), GTK_TREE_MODEL(file_store));
     g_object_unref(file_store); /* destroy model automatically with view */
-    
+
     selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(view));
     odvrData.selection = selection;
-    gtk_tree_selection_set_select_function(selection, 
-					   view_selection_funct, 
+    gtk_tree_selection_set_select_function(selection,
+					   view_selection_funct,
 					   NULL, NULL);
     gtk_tree_selection_set_mode(selection, GTK_SELECTION_MULTIPLE);
 
