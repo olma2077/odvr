@@ -2,9 +2,8 @@ Introduction
 ============
 
   odvr is a user-space driver for Olympus digital voice recorders that do not
-support USB Mass Storage. Not all formats are directly supported
-(sandec/PULCOD), and functionality is limited, but basic download and listing
-capabilities are implemented.
+support USB Mass Storage. Basic download and listing capabilities are
+implemented, with support for PULCOD format via sandeclib.
 
 
 Building
@@ -125,10 +124,9 @@ submit patches!
   odvr may get out-of-sync with the attached DVR. Use `-r` to force a DVR reset
 when odvr runs. For example, `odvr -r -l` will reset and then list recordings.
 
-  Some Olympus DVRs have a high-quality encoding option (PULCOD). This
-encoding type is not directly supported and odvr will complain about it. Use a
-different quality level for your recordings or you can use the unsupported
-`sandec` program that that is included with this source. Use odvr to
-download the raw files, then run `sandec` with the filename of the raw file.
-You can also convert all raw files downloaded to odvr folder automatically
-running the bash script also included in this source  `./convert_raw_files.sh`.
+  Some Olympus DVRs have a high-quality encoding option (PULCOD). odvr includes
+sandeclib for handling PULCOD format conversion. The library is automatically
+built and linked into odvr. Alternatively, you can use the standalone `sandec`
+tool included with this source - download raw files with odvr, then run
+`sandec` with the filename of the raw file. You can also convert all raw files
+automatically using the bash script `./convert_raw_files.sh`.

@@ -14,7 +14,7 @@ GUICFLAGS  = `pkg-config gtk+-2.0 --cflags`
 LDADD   = `pkg-config gtk+-2.0 --libs`
 CFLAGS+=$(GUICFLAGS)
 
-all: odvr odvr-gui buildsandec
+all: buildsandec odvr odvr-gui
 
 install: odvr odvr-gui
 	install -o root -g root -m 755 odvr $(PREFIX)/bin
@@ -29,15 +29,15 @@ release: $(BINS)
 	cp 41-odvr.rules debpkg/etc/udev/rules.d
 	dpkg -b debpkg odvr-$(VERSION).deb
 
-odvr: cli.o olympusdvr.o
+odvr: cli.o olympusdvr.o sandec/sandeclib.o
 	$(CC) $(CFLAGS) $(LDFLAGS)-o $@ $^ $(LIBS)
 
-odvr.x86: cli.c olympusdvr.c
+odvr.x86: cli.c olympusdvr.c sandec/sandeclib.c
 	gcc -static $(X86LIBS) -m32 -O2 -Wall -o $@ $^ -lusb -lsndfile -lm
 	strip $@
 
 odvr_icons.h:
-	@ echo Making $@ 
+	@ echo Making $@
 	@ gdk-pixbuf-csource --struct --extern --build-list `echo $(ICONS) | \
 	awk '{ for (i = 1; i <= NF; i++) printf("%s icons/%s.png  ", $$i, $$i) }'` | \
 	sed 's/\/\* pixel_data: \*\// \/\* pixel_data \*\/ (guint8 *)/'  > $@
@@ -45,7 +45,7 @@ odvr_icons.h:
 odvr_icons.c: odvr_icons.h
 
 
-odvr-gui: odvr_icons.o gui.o odvr_gui.o odvr_date.o odvr_cfg.o olympusdvr.o
+odvr-gui: odvr_icons.o gui.o odvr_gui.o odvr_date.o odvr_cfg.o olympusdvr.o sandec/sandeclib.o
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS) $(LDADD)
 
 buildsandec: sandec

@@ -24,6 +24,7 @@
 #include <sndfile.h>
 #include <usb.h>
 #include "olympusdvr.h"
+#include "sandec/sandeclib.h"
 
 #define FOLDER_IDX(x)         ((x) - 1)
 #define SLOT_IDX(x)           ((x) - 1)
@@ -318,7 +319,7 @@ int odvr_reset(odvr h, int flags){
   free(new);
 
   return 0;
-} 
+}
 
 static int valid_status(odvr h, const uint8_t *packet){
   if(! (packet[0] == 0x06 ||
@@ -411,7 +412,7 @@ const char *odvr_model(odvr h){
 
   memset(packet, 0, 64);
   packet[0] = 0xb2;
-  
+
   if(try_usb_bulk_write(h, 2, packet, 64) < 0)
     return NULL;
 
@@ -494,7 +495,7 @@ static int get_folder_metadata(odvr h, uint8_t folder){
     return -5;
   if(num_files == 0)
     return 0;
- 
+
   /* pre-allocate metadata */
   fidx = FOLDER_IDX(folder);
   for(sidx = 0; sidx < num_files; sidx++){
@@ -581,7 +582,7 @@ uint32_t odvr_wavfilesize(filestat_t *stat){
 
 int odvr_filestat(odvr h, uint8_t folder, uint8_t slot, filestat_t *stat){
   int fidx, sidx, nfiles;
-  
+
   if(folder < 1 || folder > odvr_foldercount(h))
     return -10;
 
@@ -823,6 +824,13 @@ int odvr_save_wav(odvr h, uint8_t folder, uint8_t slot, int fd){
     .channels   = 1,
     .format     = SF_FORMAT_WAV | SF_FORMAT_PCM_16,
   };
+  /* sandec codec parameters */
+  int       pulcod_size = 0;
+  int       max_size = 0;
+  int       pulcod_mode = PULCOD_MODE_1;
+  uint8_t   block_out[32 * 1024];
+  int       out_len = 0;
+  int       data_size = 0;
 
   if(odvr_filestat(h, folder, slot, &stat))
     return -10;
@@ -842,15 +850,28 @@ int odvr_save_wav(odvr h, uint8_t folder, uint8_t slot, int fd){
       out_fmt.samplerate = 16000;
       break;
     case ODVR_QUALITY_NEW_SP:
+      out_fmt.samplerate = 12000;
+      pulcod_size = 36;
+      max_size = 4032;
+      pulcod_mode = PULCOD_MODE_2;
+      break;
     case ODVR_QUALITY_NEW_LP:
+      out_fmt.samplerate = 7000;
+      pulcod_size = 64;
+      max_size = 7168;
+      pulcod_mode = PULCOD_MODE_2;
+      break;
     case ODVR_QUALITY_NEW_HQ:
-      set_error(h, "quality unsupported on your device");
-      return -13;
+      out_fmt.samplerate = 16000;
+      pulcod_size = 24;
+      max_size = 2688;
+      pulcod_mode = PULCOD_MODE_2;
+      break;
     default:
       /* we don't know about this type :( */
       set_error(h, "unknown quality");
       return -15;
-  } 
+  }
 
   /* check valid ouput */
   if(!sf_format_check(&out_fmt)){
@@ -858,31 +879,119 @@ int odvr_save_wav(odvr h, uint8_t folder, uint8_t slot, int fd){
     return -20;
   }
 
-  /* open output wav */
-  if((out = sf_open_fd(fd, SFM_WRITE, &out_fmt, 0)) == NULL){
-    set_error(h, "sndfile failed to open WAV file for writing");
-    return -30;
-  }
+  /* switch between pulcod and pulcod2 modes */
+  if(pulcod_mode == PULCOD_MODE_1){
 
-  /* download */
-  if(odvr_open_file(h, folder, slot) < 0)
-    return -35;
-  while((ns = odvr_read_block(h, block,
-                              4096 * sizeof(uint16_t), stat.quality)) > 0){
-    if(sf_write_short(out, block, ns) != ns){
-      set_error(h, "sndfile failed to write complete PCM block");
-      sf_close(out);
+    /* open output wav */
+    if((out = sf_open_fd(fd, SFM_WRITE, &out_fmt, 0)) == NULL){
+      set_error(h, "sndfile failed to open WAV file for writing");
+      return -30;
+    }
+
+    /* download */
+    if(odvr_open_file(h, folder, slot) < 0)
+      return -35;
+    while((ns = odvr_read_block(h, block,
+                                4096 * sizeof(uint16_t), stat.quality)) > 0){
+      if(sf_write_short(out, block, ns) != ns){
+        set_error(h, "sndfile failed to write complete PCM block");
+        sf_close(out);
+        return -40;
+      }
+    }
+
+    /* error in odvr_read_block */
+    if(ns < 0)
+      return ns;
+
+    sf_close(out);
+    return 0;
+  }
+  else
+  {
+    /* init pulcod2 decoder */
+    if (nas_ced_pulcod2_init(out_fmt.samplerate, pulcod_size) < 0)
+    {
+      set_error(h, "sandec failed to init pulcod2 codec with (%d,%d)", out_fmt.samplerate, pulcod_size);
+      return -50;
+    }
+
+    /* TODO move to sndfile output functions */
+
+    /* manually form WAV header */
+    ns = wave_header(block_out, 0, out_fmt.samplerate);
+    if (write(fd, block_out, ns) != ns)
+      return -40;
+
+    if (odvr_open_file(h, folder, slot) < 0)
+      return -35;
+
+    /* read raw blocks with odvr and convert with original nasced logic */
+    while ((ns = odvr_read_raw_block(h, block, 4096 * sizeof(uint16_t), stat.quality)) > 0)
+    {
+      for(int i = 0; i < 32 * 1024; i++) block_out[i] = 0;
+
+      for (int i = 2; i < 512; i += 256)
+      {
+        int k = 0;
+        int count = 0;
+
+        do
+        {
+          if (block[i + k] == 0x80)
+          {
+            int zero = 1;
+            for (int j = 1; j < 9; j++)
+              if (block[i + k + j] != 0)
+                zero = 0;
+            if (zero) // silence to end
+              break;
+          }
+
+          ns = nas_ced((uint8_t *)(block + i + k), (int16_t *)(block_out + out_len), pulcod_mode, sizeof(uint16_t));
+          if (ns >= 0)
+          {
+            out_len += ns * 2;
+            k += 9;
+          }
+
+        } while (++count < 28);
+      }
+
+      if (out_len < max_size)
+        out_len = max_size;
+
+      ns = write(fd, block_out, out_len);
+
+      if (ns < 0)
+      {
+        printf("Wave write error!\n");
+        return -40;
+      }
+
+      data_size += out_len;
+      out_len = 0;
+    }
+
+    ns = lseek(fd, 0, SEEK_SET);
+
+    if (ns < 0)
+    {
+      printf("Wave seek error!\n");
       return -40;
     }
+
+    ns = wave_header(block_out, data_size, out_fmt.samplerate);
+    if (write(fd, block_out, ns) != ns)
+      return -40;
+
+    if (close(fd) < 0){
+      printf("Wave close error!\n");
+    }
+    return 0;
   }
-
-  /* error in odvr_read_block */
-  if(ns < 0)
-    return ns;
-
-  sf_close(out);
-  return 0;
 }
+
 
 int odvr_save_raw(odvr h, uint8_t folder, uint8_t slot, int fd){
   int16_t    block[4096];
@@ -946,7 +1055,7 @@ int odvr_clear_folder(odvr h, uint8_t folder){
   packet[1] = folder;
   packet[2] = 0xff;
   packet[3] = 0xff;
- 
+
   if(prepare(h))
     return -10;
 
