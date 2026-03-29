@@ -929,6 +929,8 @@ int odvr_save_wav(odvr h, uint8_t folder, uint8_t slot, int fd){
     /* read raw blocks with odvr and convert with original nasced logic */
     while ((ns = odvr_read_raw_block(h, block, 4096 * sizeof(uint16_t), stat.quality)) > 0)
     {
+      uint8_t *raw = (uint8_t *)block + 2; /* skip 2-byte length header, align with sandec 'in' layout */
+
       for(int i = 0; i < 32 * 1024; i++) block_out[i] = 0;
 
       for (int i = 2; i < 512; i += 256)
@@ -938,17 +940,17 @@ int odvr_save_wav(odvr h, uint8_t folder, uint8_t slot, int fd){
 
         do
         {
-          if (block[i + k] == 0x80)
+          if (raw[i + k] == 0x80)
           {
             int zero = 1;
             for (int j = 1; j < 9; j++)
-              if (block[i + k + j] != 0)
+              if (raw[i + k + j] != 0)
                 zero = 0;
             if (zero) // silence to end
               break;
           }
 
-          ns = nas_ced((uint8_t *)(block + i + k), (int16_t *)(block_out + out_len), pulcod_mode, sizeof(uint16_t));
+          ns = nas_ced(raw + i + k, (int16_t *)(block_out + out_len), pulcod_mode, sizeof(uint16_t));
           if (ns >= 0)
           {
             out_len += ns * 2;
