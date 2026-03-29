@@ -929,7 +929,7 @@ int odvr_save_wav(odvr h, uint8_t folder, uint8_t slot, int fd){
     /* read raw blocks with odvr and convert with original nasced logic */
     while ((ns = odvr_read_raw_block(h, block, 4096 * sizeof(uint16_t), stat.quality)) > 0)
     {
-      uint8_t *raw = (uint8_t *)block + 2; /* skip 2-byte length header, align with sandec 'in' layout */
+      uint8_t *raw = (uint8_t *)block; /* byte-level pointer, matches sandec 'in' layout exactly */
 
       for(int i = 0; i < 32 * 1024; i++) block_out[i] = 0;
 
