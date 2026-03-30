@@ -856,7 +856,7 @@ int odvr_save_wav(odvr h, uint8_t folder, uint8_t slot, int fd){
       pulcod_mode = PULCOD_MODE_2;
       break;
     case ODVR_QUALITY_NEW_LP:
-      out_fmt.samplerate = 7000;
+      out_fmt.samplerate = 8000;
       pulcod_size = 64;
       max_size = 7168;
       pulcod_mode = PULCOD_MODE_2;
